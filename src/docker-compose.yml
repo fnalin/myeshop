@@ -1,0 +1,31 @@
+version: '3.9'
+
+services:
+  catalogdb:
+    image: mongo
+    container_name: catalogdb
+    restart: always
+    ports:
+      - 27017:27017
+    volumes:
+      - mongo_data:/data/db
+
+
+  eshopcatalogapi:
+    image: fansoft/eshopcatalogapi
+    container_name: eshopcatalogapi
+    build:
+      context: .
+      dockerfile: EShop.Catalog.Api/Dockerfile
+    ports:
+      - 8081:80
+    environment:
+      - ASPNET_ENVIRONMENT=Development
+      - DatabaseSettings__ConnectionString=mongodb://catalogdb:27017
+      - DatabaseSettings__DatabaseName=CatalogDb
+      - DatabaseSettings__CollectionName=Products
+    depends_on:
+      - catalogdb
+
+volumes:
+  mongo_data:
