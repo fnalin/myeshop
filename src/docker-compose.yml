@@ -10,10 +10,17 @@ services:
     volumes:
       - mongo_data:/data/db
 
+  basketdb:
+    image: redis:alpine
+    container_name: basketdb
+    restart: always
+    ports:
+      - 6379:6379
+
 
   eshopcatalogapi:
     image: fansoft/eshopcatalogapi
-    container_name: eshopcatalogapi
+    container_name: eshop.catalog.api
     build:
       context: .
       dockerfile: EShop.Catalog.Api/Dockerfile
@@ -26,6 +33,20 @@ services:
       - DatabaseSettings__CollectionName=Products
     depends_on:
       - catalogdb
+
+  eshopbasketgapi:
+    image: fansoft/eshopbasketapi
+    container_name: eshop.basket.api
+    build:
+      context: .
+      dockerfile: EShop.Basket.Api/Dockerfile
+    ports:
+      - 8082:80
+    environment:
+      - ASPNET_ENVIRONMENT=Development
+      - CacheSettings__ConnectionString=basketdb:6379
+    depends_on:
+      - basketdb
 
 volumes:
   mongo_data:
