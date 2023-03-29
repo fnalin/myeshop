@@ -1,34 +1,83 @@
-﻿using System;
+﻿ using System;
+using System.Data;
+using Dapper;
 using EShop.Discount.Api.Models;
+using Npgsql;
 
 namespace EShop.Discount.Api.Data
 {
 	public class DiscountRepository : IDiscountRepository
     {
-		public DiscountRepository()
+        private readonly IDbConnection _connSql;
+
+        public DiscountRepository(IConfiguration config)
 		{
-		}
+            var _conn = config.GetConnectionString("DatabaseConn");
+            _connSql = new NpgsqlConnection(_conn);
+        }
 
-        public Task<Coupon> GetDiscountAsync(string productName)
+        public async Task<Coupon> GetDiscountAsync(string productName)
         {
-            throw new NotImplementedException();
+            var data = await _connSql
+                    .QueryFirstOrDefaultAsync<Coupon>
+                        ("SELECT * FROM Coupon WHERE ProductName = @ProductName",
+                            new { ProductName = productName });
+
+            return data ??
+                    new Coupon {
+                        ProductName = "No Discount",
+                        Description = "No discount desc"
+                    };
+        }
+
+        public async Task<bool> CreateDiscountAsync(Coupon coupon)
+        {
+            var affected = await _connSql.ExecuteAsync(
+                    "INSERT INTO Coupon (ProductName, Description, Amount) " +
+                        "VALUES (@ProductName, @Description, @Amount)",
+                    new {
+                        ProductName = coupon.ProductName,
+                        Description = coupon.Description,
+                        Amount = coupon.Amount
+                    }
+            );
+
+            return affected > 0;
         }
 
 
-        public Task<bool> UpdateDiscountAsync(Coupon coupon)
+        public async Task<bool> UpdateDiscountAsync(Coupon coupon)
         {
-            throw new NotImplementedException();
+            var affected = await _connSql.ExecuteAsync(
+                     "UPDATE Coupon SET ProductName=@ProductName, " +
+                        "Description=@Description, Amount=@Amount " +
+                            "WHERE Id=@Id",
+                     new
+                     {
+                         ProductName = coupon.ProductName,
+                         Description = coupon.Description,
+                         Amount = coupon.Amount,
+                         Id = coupon.Id
+                     }
+             );
+
+            return affected > 0;
         }
 
 
-        public Task<bool> CreateDiscountAsync(Coupon coupon)
-        {
-            throw new NotImplementedException();
-        }
+        
 
-        public Task<bool> DeleteDiscountAsync(string productName)
+        public async Task<bool> DeleteDiscountAsync(string productName)
         {
-            throw new NotImplementedException();
+            var affected = await _connSql.ExecuteAsync(
+                     "DELETE FROM Coupon WHERE ProductName=@ProductName",
+                     new
+                     {
+                         ProductName = productName
+                     }
+             );
+
+            return affected > 0;
         }
 
     }

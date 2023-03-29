@@ -11,11 +11,33 @@ services:
       - mongo_data:/data/db
 
   basketdb:
-    image: redis:alpine
+    image: redis:7-alpine
     container_name: basketdb
     restart: always
     ports:
       - 6379:6379
+
+  discountdb:
+    image: postgres:15
+    container_name: discountdb
+    environment:
+      - POSTGRES_USER=admin
+      - POSTGRES_PASSWORD=admin1234
+      - POSTGRES_DB=discountdatadb
+    restart: always
+    ports:
+      - 5432:5432
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  pg-admin:
+    image: dpage/pgadmin4:6
+    environment:
+      - PGADMIN_DEFAULT_EMAIL=admin@email.com
+      - PGADMIN_DEFAULT_PASSWORD=admin
+      - PGADMIN_LISTEN_PORT=5050
+    ports:
+      - 5050:5050
 
 
   eshopcatalogapi:
@@ -48,5 +70,20 @@ services:
     depends_on:
       - basketdb
 
+  eshopdiscountapi:
+    image: fansoft/eshopdiscountapi
+    container_name: eshop.discount.api
+    build:
+      context: .
+      dockerfile: EShop.Discount.Api/Dockerfile
+    ports:
+      - 8083:80
+    environment:
+      - ASPNET_ENVIRONMENT=Development
+      - ConnectionStrings__DatabaseConn=Server=discountdb;Port=5432;Database=discountdatadb;User Id=admin;Password=admin1234
+    depends_on:
+      - discountdb
+
 volumes:
   mongo_data:
+  postgres_data:
